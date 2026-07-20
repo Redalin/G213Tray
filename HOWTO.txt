@@ -1,0 +1,39 @@
+G213Tray — Quick Install
+=========================
+
+Requirements
+------------
+- Python 3.8+
+- PyQt5
+- pyusb
+
+  openSUSE / Tumbleweed:  sudo zypper install python3-PyQt5 python3-pyusb
+  Fedora:                 sudo dnf install python3-pyqt5 python3-pyusb
+  Ubuntu / Debian:        sudo apt install python3-pyqt5 python3-usb
+
+Install
+-------
+1. Extract this archive wherever you like, e.g.:
+     tar xzf g213tray-0.1.0.tar.gz -C ~/.local/share/
+     cd ~/.local/share/g213tray-0.1.0
+
+2. Install the udev rule (one-time, lets your user access the keyboard
+   without sudo):
+     sudo cp 99-g213.rules /etc/udev/rules.d/
+     sudo udevadm control --reload-rules
+     sudo udevadm trigger --subsystem-match=usb
+
+3. Make the script executable and test it:
+     chmod +x g213tray.py
+     python3 g213tray.py
+
+   A keyboard icon should appear in your KDE system tray. Left-click
+   toggles the light, right-click opens the color menu.
+
+4. Optional — autostart on login:
+     cp g213tray.desktop ~/.config/autostart/
+   Then edit the Exec= line in that file to the full path where you
+   extracted g213tray.py.
+
+Support & source: https://github.com/Agundur-KDE/G213Tray
+License: GPL-3.0-or-later (see LICENSE)

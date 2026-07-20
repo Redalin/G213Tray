@@ -2,7 +2,7 @@
 Type=Application
 Name=G213 Tray
 Comment=G213 keyboard lighting control
-Exec=/home/alec/projects/G213Tray/g213tray.py
+Exec=/path/to/G213Tray/g213tray.py
 Icon=input-keyboard
 Categories=Utility;
 StartupNotify=false
