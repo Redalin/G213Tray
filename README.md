@@ -6,6 +6,10 @@ A lightweight KDE system tray applet to control the backlight color of the **Log
 ![Python](https://img.shields.io/badge/Python-3.8%2B-yellow?logo=python)
 ![License](https://img.shields.io/badge/License-GPL--3.0-green)
 
+## Visuals
+
+![G213 keyboard with red backlight set via G213Tray](g213tray-red.jpg)
+
 ## Features
 
 - **Toggle lighting** with a single left-click on the tray icon
@@ -91,7 +95,7 @@ To start G213Tray automatically when you log in to KDE:
 cp g213tray.desktop ~/.config/autostart/
 ```
 
-Edit the `Exec=` line in the `.desktop` file to match the full path where you cloned the repo if it differs from `/home/alec/projects/G213Tray/g213tray.py`.
+Edit the `Exec=` line in the `.desktop` file to point at the full path of `g213tray.py` inside wherever you cloned the repo, e.g. `/home/<user>/G213Tray/g213tray.py`.
 
 ## Usage
 
