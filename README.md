@@ -18,12 +18,13 @@ A lightweight KDE system tray applet to control the backlight color of Logitech 
 - **Remembers** last color and on/off state across reboots
 - **Keyboard selector** for Logitech G213 and G512 protocol profiles
 - **Language selector** for German and English interface text
+- **Automatic startup defaults** based on the connected keyboard and system language
 - **Autostart** via KDE's standard autostart mechanism
 - No root required after a one-time udev rule setup
 
 ## Compatible keyboards
 
-Tested and confirmed working. Select the keyboard profile from the tray menu under **Keyboard**:
+Tested and confirmed working. By default, the keyboard profile is detected from the connected USB device and the interface follows the system language. Manual choices remain available from the tray menu under **Keyboard** and **Language**:
 
 | Keyboard | Vendor ID | Product ID |
 |---|---|---|

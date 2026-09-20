@@ -3,6 +3,7 @@
 import sys
 import json
 import os
+import locale
 import usb.core
 import usb.util
 from PyQt6.QtWidgets import (QApplication, QSystemTrayIcon, QMenu,
@@ -80,18 +81,39 @@ def _send(r, g, b, keyboard, language="en"):
                 pass
 
 
+def detect_keyboard():
+    devices = list(usb.core.find(find_all=True, idVendor=VENDOR) or [])
+    for keyboard, profile in KEYBOARDS.items():
+        if any(device.idProduct in profile["product_ids"]
+               for device in devices):
+            return keyboard
+    return None
+
+
+def detect_language():
+    system_locale = locale.getlocale()[0] or ""
+    return "de" if system_locale.lower().startswith("de") else "en"
+
+
 def load_state():
     try:
         with open(CONFIG) as f:
             return json.load(f)
     except Exception:
         return {"on": True, "color": [255, 255, 255],
-                "keyboard": "g213", "language": "de"}
+                "keyboard": "g213", "language": "de",
+                "keyboard_auto": True, "language_auto": True}
 
 
-def ensure_state(state):
+def ensure_state(state, detected_keyboard, system_language):
     state.setdefault("on", True)
     state.setdefault("color", [255, 255, 255])
+    state.setdefault("keyboard_auto", True)
+    state.setdefault("language_auto", True)
+    if state["keyboard_auto"]:
+        state["keyboard"] = detected_keyboard or "g213"
+    if state["language_auto"]:
+        state["language"] = system_language
     if state.get("keyboard") not in KEYBOARDS:
         state["keyboard"] = "g213"
     if state.get("language") not in TRANSLATIONS:
@@ -107,12 +129,14 @@ def save_state(state):
 class G213Tray:
     def __init__(self, app):
         self.app   = app
-        self.state = ensure_state(load_state())
+        self.state = ensure_state(load_state(), detect_keyboard(),
+                                  detect_language())
         self.translations = TRANSLATIONS
         self.tray  = QSystemTrayIcon(QIcon.fromTheme("input-keyboard"), app)
         self.menu = QMenu()
         self._build_menu()
         self.tray.setToolTip(self._text("lighting"))
+        self._apply_state()
 
         # left click = toggle
         self.tray.activated.connect(self._on_activate)
@@ -135,7 +159,8 @@ class G213Tray:
                 def cb():
                     self.state["color"] = [r, g, b]
                     self.state["on"]    = True
-                    _send(r, g, b)
+                    _send(r, g, b, self.state["keyboard"],
+                          self.state["language"])
                     save_state(self.state)
                 return cb
             action = QAction(name, menu)
@@ -149,6 +174,12 @@ class G213Tray:
 
         menu.addSeparator()
         keyboard_menu = menu.addMenu(self._text("keyboard"))
+        auto_keyboard = QAction(self._text("automatic"), keyboard_menu)
+        auto_keyboard.setCheckable(True)
+        auto_keyboard.setChecked(self.state["keyboard_auto"])
+        auto_keyboard.triggered.connect(self._select_auto_keyboard)
+        keyboard_menu.addAction(auto_keyboard)
+        keyboard_menu.addSeparator()
         for keyboard, profile in KEYBOARDS.items():
             action = QAction(profile["name"], keyboard_menu)
             action.setCheckable(True)
@@ -158,6 +189,12 @@ class G213Tray:
             keyboard_menu.addAction(action)
 
         language_menu = menu.addMenu(self._text("language"))
+        auto_language = QAction(self._text("system_default"), language_menu)
+        auto_language.setCheckable(True)
+        auto_language.setChecked(self.state["language_auto"])
+        auto_language.triggered.connect(self._select_system_language)
+        language_menu.addAction(auto_language)
+        language_menu.addSeparator()
         for language, translation in self.translations.items():
             action = QAction(translation["language_name"], language_menu)
             action.setCheckable(True)
@@ -174,7 +211,7 @@ class G213Tray:
         self.tray.setContextMenu(menu)
         self.tray.show()
 
-        # apply last saved state on startup
+    def _apply_state(self):
         if self.state["on"]:
             r, g, b = self.state["color"]
             _send(r, g, b, self.state["keyboard"], self.state["language"])
@@ -182,6 +219,7 @@ class G213Tray:
             _send(0, 0, 0, self.state["keyboard"], self.state["language"])
 
     def _select_keyboard(self, keyboard):
+        self.state["keyboard_auto"] = False
         self.state["keyboard"] = keyboard
         save_state(self.state)
         self._build_menu()
@@ -189,8 +227,24 @@ class G213Tray:
         r, g, b = self.state["color"] if self.state["on"] else (0, 0, 0)
         _send(r, g, b, keyboard, self.state["language"])
 
+    def _select_auto_keyboard(self):
+        self.state["keyboard_auto"] = True
+        self.state["keyboard"] = detect_keyboard() or "g213"
+        save_state(self.state)
+        self._build_menu()
+        self.tray.setToolTip(self._text("lighting"))
+        self._apply_state()
+
     def _select_language(self, language):
+        self.state["language_auto"] = False
         self.state["language"] = language
+        save_state(self.state)
+        self._build_menu()
+        self.tray.setToolTip(self._text("lighting"))
+
+    def _select_system_language(self):
+        self.state["language_auto"] = True
+        self.state["language"] = detect_language()
         save_state(self.state)
         self._build_menu()
         self.tray.setToolTip(self._text("lighting"))

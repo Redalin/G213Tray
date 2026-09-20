@@ -1,6 +1,8 @@
 {
   "de": {
     "language_name": "Deutsch",
+    "automatic": "Automatisch",
+    "system_default": "Systemstandard",
     "keyboard": "Tastatur",
     "language": "Sprache",
     "toggle": "Licht ein/aus",
@@ -12,6 +14,8 @@
   },
   "en": {
     "language_name": "English",
+    "automatic": "Automatic",
+    "system_default": "System default",
     "keyboard": "Keyboard",
     "language": "Language",
     "toggle": "Toggle lighting",
