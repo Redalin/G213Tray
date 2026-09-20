@@ -86,6 +86,37 @@ KEY_GROUPS = {
                "Num 7", "Num 8", "Num 9", "Num 0", "Num ."),
 }
 
+KEYBOARD_LAYOUT = [
+    (0, [("Esc", 2), ("F1", 2), ("F2", 2), ("F3", 2), ("F4", 2),
+        ("F5", 2), ("F6", 2), ("F7", 2), ("F8", 2), ("F9", 2),
+        ("F10", 2), ("F11", 2), ("F12", 2)]),
+    (0, [("`", 2), ("1", 2), ("2", 2), ("3", 2), ("4", 2),
+        ("5", 2), ("6", 2), ("7", 2), ("8", 2), ("9", 2),
+        ("0", 2), ("-", 2), ("=", 2), ("Backspace", 4)]),
+    (1, [("Tab", 3), ("Q", 2), ("W", 2), ("E", 2), ("R", 2),
+        ("T", 2), ("Y", 2), ("U", 2), ("I", 2), ("O", 2),
+        ("P", 2), ("[", 2), ("]", 2), ("\\", 2)]),
+    (1, [("Caps Lock", 3), ("A", 2), ("S", 2), ("D", 2), ("F", 2),
+        ("G", 2), ("H", 2), ("J", 2), ("K", 2), ("L", 2),
+        (";", 2), ("'", 2), ("Enter", 4)]),
+    (0, [("Shift", 4), ("Z", 2), ("X", 2), ("C", 2), ("V", 2),
+        ("B", 2), ("N", 2), ("M", 2), (",", 2), (".", 2),
+        ("/", 2), ("Right Shift", 4)]),
+        (0, [("Ctrl", 3), ("Super", 3), ("Alt", 3), ("Space", 11),
+            ("Right Alt", 3), ("Right Super", 3), ("Right Ctrl", 3),
+            ("Menu", 3)]),
+    (1, [("Print Screen", 2), ("Scroll Lock", 2), ("Pause", 2),
+        ("Insert", 2), ("Home", 2), ("Page Up", 2),
+        ("Num Lock", 2), ("Num /", 2), ("Num *", 2)]),
+    (1, [("Delete", 2), ("End", 2), ("Page Down", 2), ("Num 7", 2),
+        ("Num 8", 2), ("Num 9", 2), ("Num -", 2)]),
+    (5, [("Up", 2), ("Num 4", 2), ("Num 5", 2), ("Num 6", 2),
+        ("Num +", 2)]),
+    (3, [("Left", 2), ("Down", 2), ("Right", 2), ("Num 1", 2),
+        ("Num 2", 2), ("Num 3", 2), ("Num Enter", 2)]),
+    (8, [("Num 0", 4), ("Num .", 2)]),
+]
+
 
 def load_languages():
     try:
@@ -377,6 +408,10 @@ class G213Tray:
         else:
             group_box = QGroupBox(self._text("groups")["title"])
             group_layout = QHBoxLayout(group_box)
+            none_button = QPushButton(self._text("none"))
+            none_button.clicked.connect(
+                lambda: self._clear_selection(selected, key_buttons))
+            group_layout.addWidget(none_button)
             for group in KEY_GROUPS:
                 button = QPushButton(self._text("groups")[group])
                 button.clicked.connect(
@@ -388,15 +423,18 @@ class G213Tray:
             key_box = QGroupBox(self._text("individual_keys"))
             key_layout = QGridLayout(key_box)
             key_buttons = {}
-            for index, name in enumerate(KEYS):
-                button = QPushButton(name)
-                button.setCheckable(True)
-                button.setChecked(name in selected)
-                button.clicked.connect(
-                    lambda checked, key=name: self._toggle_key(
-                        key, checked, selected))
-                key_buttons[name] = button
-                key_layout.addWidget(button, index // 10, index % 10)
+            for row, (offset, row_keys) in enumerate(KEYBOARD_LAYOUT):
+                column = offset
+                for name, span in row_keys:
+                    button = QPushButton(name)
+                    button.setCheckable(True)
+                    button.setChecked(name in selected)
+                    button.clicked.connect(
+                        lambda checked, key=name: self._toggle_key(
+                            key, checked, selected))
+                    key_buttons[name] = button
+                    key_layout.addWidget(button, row, column, 1, span)
+                    column += span
             layout.addWidget(key_box)
 
             color_row = QHBoxLayout()
@@ -443,6 +481,11 @@ class G213Tray:
             selected.add(key)
         else:
             selected.discard(key)
+
+    def _clear_selection(self, selected, key_buttons):
+        selected.clear()
+        for button in key_buttons.values():
+            button.setChecked(False)
 
     def _select_group(self, group, selected, key_buttons):
         for key in KEY_GROUPS[group]:
