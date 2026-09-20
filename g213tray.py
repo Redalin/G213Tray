@@ -5,30 +5,35 @@ import json
 import os
 import usb.core
 import usb.util
-from PyQt5.QtWidgets import (QApplication, QSystemTrayIcon, QMenu,
-                              QColorDialog, QAction)
-from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import (QApplication, QSystemTrayIcon, QMenu,
+                              QColorDialog)
+from PyQt6.QtGui import QIcon, QColor, QAction
+from PyQt6.QtCore import Qt
 
 VENDOR  = 0x046d
-PRODUCT = 0xc336
+PRODUCT_IDS = (0xc342, 0xc33c)
 CONFIG  = os.path.expanduser("~/.config/g213tray.json")
 
 PRESETS = [
-    ("Weiß",   0xff, 0xff, 0xff),
-    ("Rot",    0xff, 0x00, 0x00),
-    ("Grün",   0x00, 0xff, 0x00),
-    ("Blau",   0x00, 0x00, 0xff),
-    ("Lila",   0x80, 0x00, 0xff),
+    ("White",  0xff, 0xff, 0xff),
+    ("Red",    0xff, 0x00, 0x00),
+    ("Green",  0x00, 0xff, 0x00),
+    ("Blue",   0x00, 0x00, 0xff),
+    ("Purple", 0x80, 0x00, 0xff),
     ("Orange", 0xff, 0x60, 0x00),
     ("Cyan",   0x00, 0xff, 0xff),
 ]
 
 
 def _send(r, g, b):
-    dev = usb.core.find(idVendor=VENDOR, idProduct=PRODUCT)
+    devices = list(usb.core.find(find_all=True, idVendor=VENDOR) or [])
+    dev = next((candidate for candidate in devices
+                if candidate.idProduct in PRODUCT_IDS), None)
     if dev is None:
-        print("G213 nicht gefunden", file=sys.stderr)
+        detected = ", ".join(f"0x{candidate.idProduct:04x}"
+                             for candidate in devices)
+        print(f"G512 not found (Logitech IDs detected: {detected or 'none'})",
+              file=sys.stderr)
         return
     iface = 1
     detached = False
@@ -36,7 +41,7 @@ def _send(r, g, b):
         dev.detach_kernel_driver(iface)
         detached = True
     try:
-        pkt = [0x11, 0xff, 0x0c, 0x3a, 0x00, 0x01, r, g, b,
+        pkt = [0x11, 0xff, 0x0d, 0x3c, 0x00, 0x01, r, g, b,
                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         dev.ctrl_transfer(0x21, 0x09, 0x0211, iface, pkt)
     finally:
@@ -66,14 +71,14 @@ class G213Tray:
         self.app   = app
         self.state = load_state()
         self.tray  = QSystemTrayIcon(QIcon.fromTheme("input-keyboard"), app)
-        self.tray.setToolTip("G213 Beleuchtung")
+        self.tray.setToolTip("G213 lighting")
 
         # left click = toggle
         self.tray.activated.connect(self._on_activate)
 
         menu = QMenu()
 
-        toggle = QAction("Licht ein/aus", menu)
+        toggle = QAction("Toggle lighting", menu)
         toggle.triggered.connect(self._toggle)
         menu.addAction(toggle)
         menu.addSeparator()
@@ -91,12 +96,12 @@ class G213Tray:
             menu.addAction(action)
 
         menu.addSeparator()
-        custom = QAction("Eigene Farbe …", menu)
+        custom = QAction("Custom color...", menu)
         custom.triggered.connect(self._pick_color)
         menu.addAction(custom)
 
         menu.addSeparator()
-        quit_a = QAction("Beenden", menu)
+        quit_a = QAction("Quit", menu)
         quit_a.triggered.connect(app.quit)
         menu.addAction(quit_a)
 
@@ -120,7 +125,7 @@ class G213Tray:
         save_state(self.state)
 
     def _on_activate(self, reason):
-        if reason == QSystemTrayIcon.Trigger:   # left click
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:   # left click
             self._toggle()
 
     def _pick_color(self):
@@ -139,4 +144,4 @@ if __name__ == "__main__":
     app = App = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     tray = G213Tray(app)
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
