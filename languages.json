@@ -8,6 +8,18 @@
     "toggle": "Licht ein/aus",
     "presets": ["Weiß", "Rot", "Grün", "Blau", "Lila", "Orange", "Cyan"],
     "custom_color": "Eigene Farbe ...",
+    "all_keys": "Alle Tasten",
+    "individual_keys": "Einzelne Tasten ...",
+    "per_key_unavailable": "Einzeltasten werden von dieser Tastatur nicht unterstützt",
+    "groups": {
+      "title": "Tastengruppen",
+      "wasd": "WASD",
+      "arrows": "Pfeiltasten",
+      "fkeys": "Funktionstasten",
+      "navigation": "Navigation",
+      "modifiers": "Modifikatortasten",
+      "numpad": "Ziffernblock"
+    },
     "quit": "Beenden",
     "lighting": "Beleuchtung",
     "not_found": "{keyboard} nicht gefunden (Logitech-IDs: {detected})"
@@ -21,6 +33,18 @@
     "toggle": "Toggle lighting",
     "presets": ["White", "Red", "Green", "Blue", "Purple", "Orange", "Cyan"],
     "custom_color": "Custom color...",
+    "all_keys": "All keys",
+    "individual_keys": "Individual keys...",
+    "per_key_unavailable": "Individual keys are not supported by this keyboard",
+    "groups": {
+      "title": "Key groups",
+      "wasd": "WASD",
+      "arrows": "Arrow keys",
+      "fkeys": "Function keys",
+      "navigation": "Navigation",
+      "modifiers": "Modifier keys",
+      "numpad": "Numpad"
+    },
     "quit": "Quit",
     "lighting": "lighting",
     "not_found": "{keyboard} not found (Logitech IDs detected: {detected})"

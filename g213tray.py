@@ -7,7 +7,8 @@ import locale
 import usb.core
 import usb.util
 from PyQt6.QtWidgets import (QApplication, QSystemTrayIcon, QMenu,
-                              QColorDialog)
+                              QColorDialog, QDialog, QDialogButtonBox,
+                              QGridLayout, QPushButton)
 from PyQt6.QtGui import QIcon, QColor, QAction
 from PyQt6.QtCore import Qt
 
@@ -21,11 +22,14 @@ KEYBOARDS = {
         "name": "Logitech G213",
         "product_ids": (0xc336,),
         "packet_prefix": (0x0c, 0x3a),
+        "per_key": False,
     },
     "g512": {
         "name": "Logitech G512",
         "product_ids": (0xc342, 0xc33c),
         "packet_prefix": (0x0d, 0x3c),
+        "key_packet_prefix": (0x12, 0xff, 0x0c, 0x3a, 0x00, 0x01, 0x00, 0x0e),
+        "per_key": True,
     },
 }
 
@@ -38,6 +42,48 @@ PRESETS = [
     ("Orange", 0xff, 0x60, 0x00),
     ("Cyan",   0x00, 0xff, 0xff),
 ]
+
+KEYS = {
+    "A": 0x04, "B": 0x05, "C": 0x06, "D": 0x07, "E": 0x08,
+    "F": 0x09, "G": 0x0a, "H": 0x0b, "I": 0x0c, "J": 0x0d,
+    "K": 0x0e, "L": 0x0f, "M": 0x10, "N": 0x11, "O": 0x12,
+    "P": 0x13, "Q": 0x14, "R": 0x15, "S": 0x16, "T": 0x17,
+    "U": 0x18, "V": 0x19, "W": 0x1a, "X": 0x1b, "Y": 0x1c,
+    "Z": 0x1d,
+    "1": 0x1e, "2": 0x1f, "3": 0x20, "4": 0x21, "5": 0x22,
+    "6": 0x23, "7": 0x24, "8": 0x25, "9": 0x26, "0": 0x27,
+    "Enter": 0x28, "Esc": 0x29, "Backspace": 0x2a, "Tab": 0x2b,
+    "Space": 0x2c, "-": 0x2d, "=": 0x2e, "[": 0x2f, "]": 0x30,
+    "\\": 0x31, ";": 0x33, "'": 0x34, "`": 0x35, ",": 0x36,
+    ".": 0x37, "/": 0x38, "Caps Lock": 0x39,
+    "F1": 0x3a, "F2": 0x3b, "F3": 0x3c, "F4": 0x3d, "F5": 0x3e,
+    "F6": 0x3f, "F7": 0x40, "F8": 0x41, "F9": 0x42, "F10": 0x43,
+    "F11": 0x44, "F12": 0x45,
+    "Print Screen": 0x46, "Scroll Lock": 0x47, "Pause": 0x48,
+    "Insert": 0x49, "Home": 0x4a, "Page Up": 0x4b, "Delete": 0x4c,
+    "End": 0x4d, "Page Down": 0x4e,
+    "Right": 0x4f, "Left": 0x50, "Down": 0x51, "Up": 0x52,
+    "Num Lock": 0x53, "Num /": 0x54, "Num *": 0x55, "Num -": 0x56,
+    "Num +": 0x57, "Num Enter": 0x58, "Num 1": 0x59, "Num 2": 0x5a,
+    "Num 3": 0x5b, "Num 4": 0x5c, "Num 5": 0x5d, "Num 6": 0x5e,
+    "Num 7": 0x5f, "Num 8": 0x60, "Num 9": 0x61, "Num 0": 0x62,
+    "Num .": 0x63,
+    "Ctrl": 0xe0, "Shift": 0xe1, "Alt": 0xe2, "Super": 0xe3,
+    "Right Alt": 0xe4, "Right Super": 0xe5, "Right Ctrl": 0xe6,
+    "Right Shift": 0xe7, "Menu": 0xe8,
+}
+
+KEY_GROUPS = {
+    "wasd": ("W", "A", "S", "D"),
+    "arrows": ("Up", "Left", "Down", "Right"),
+    "fkeys": tuple(f"F{i}" for i in range(1, 13)),
+    "navigation": ("Insert", "Home", "Page Up", "Delete", "End", "Page Down"),
+    "modifiers": ("Ctrl", "Shift", "Alt", "Super", "Right Alt", "Right Super",
+                  "Right Ctrl", "Right Shift", "Menu"),
+    "numpad": ("Num Lock", "Num /", "Num *", "Num -", "Num +", "Num Enter",
+               "Num 1", "Num 2", "Num 3", "Num 4", "Num 5", "Num 6",
+               "Num 7", "Num 8", "Num 9", "Num 0", "Num ."),
+}
 
 
 def load_languages():
@@ -81,6 +127,46 @@ def _send(r, g, b, keyboard, language="en"):
                 pass
 
 
+def _send_keys(key_colors, keyboard, language="en"):
+    profile = KEYBOARDS[keyboard]
+    if not profile["per_key"] or not key_colors:
+        return
+    devices = list(usb.core.find(find_all=True, idVendor=VENDOR) or [])
+    dev = next((candidate for candidate in devices
+                if candidate.idProduct in profile["product_ids"]), None)
+    if dev is None:
+        detected = ", ".join(f"0x{candidate.idProduct:04x}"
+                             for candidate in devices)
+        message = TRANSLATIONS.get(language, TRANSLATIONS["en"])["not_found"]
+        print(message.format(keyboard=profile["name"],
+                             detected=detected or "none"), file=sys.stderr)
+        return
+    iface = 1
+    detached = False
+    if dev.is_kernel_driver_active(iface):
+        dev.detach_kernel_driver(iface)
+        detached = True
+    try:
+        items = [(KEYS[name], color) for name, color in key_colors.items()
+                 if name in KEYS]
+        for start in range(0, len(items), 14):
+            packet = list(profile["key_packet_prefix"])
+            for key_id, color in items[start:start + 14]:
+                packet.extend((key_id, *color))
+            packet.extend([0x00] * (64 - len(packet)))
+            dev.ctrl_transfer(0x21, 0x09, 0x0211, iface, packet)
+        commit = [0x11, 0xff, 0x0c, 0x5a]
+        dev.ctrl_transfer(0x21, 0x09, 0x0211, iface,
+                          commit + [0x00] * 16)
+    finally:
+        usb.util.release_interface(dev, iface)
+        if detached:
+            try:
+                dev.attach_kernel_driver(iface)
+            except Exception:
+                pass
+
+
 def detect_keyboard():
     devices = list(usb.core.find(find_all=True, idVendor=VENDOR) or [])
     for keyboard, profile in KEYBOARDS.items():
@@ -110,6 +196,7 @@ def ensure_state(state, detected_keyboard, system_language):
     state.setdefault("color", [255, 255, 255])
     state.setdefault("keyboard_auto", True)
     state.setdefault("language_auto", True)
+    state.setdefault("key_colors", {})
     if state["keyboard_auto"]:
         state["keyboard"] = detected_keyboard or "g213"
     if state["language_auto"]:
@@ -157,20 +244,31 @@ class G213Tray:
             name = self.translations[self.state["language"]]["presets"][index]
             def make_cb(r=r, g=g, b=b):
                 def cb():
-                    self.state["color"] = [r, g, b]
-                    self.state["on"]    = True
-                    _send(r, g, b, self.state["keyboard"],
-                          self.state["language"])
-                    save_state(self.state)
+                    self._set_all_color(r, g, b)
                 return cb
             action = QAction(name, menu)
             action.triggered.connect(make_cb())
             menu.addAction(action)
 
         menu.addSeparator()
-        custom = QAction(self._text("custom_color"), menu)
-        custom.triggered.connect(self._pick_color)
-        menu.addAction(custom)
+        custom_menu = menu.addMenu(self._text("custom_color"))
+        all_keys = QAction(self._text("all_keys"), custom_menu)
+        all_keys.triggered.connect(self._pick_color)
+        custom_menu.addAction(all_keys)
+        individual = QAction(self._text("individual_keys"), custom_menu)
+        individual.setEnabled(self._per_key_supported())
+        individual.triggered.connect(self._edit_keys)
+        custom_menu.addAction(individual)
+        if not self._per_key_supported():
+            individual.setToolTip(self._text("per_key_unavailable"))
+        custom_menu.addSeparator()
+        group_menu = custom_menu.addMenu(self._text("groups")["title"])
+        for group, keys in KEY_GROUPS.items():
+            action = QAction(self._text("groups")[group], group_menu)
+            action.setEnabled(self._per_key_supported())
+            action.triggered.connect(
+                lambda checked, selected=group: self._set_group_color(selected))
+            group_menu.addAction(action)
 
         menu.addSeparator()
         keyboard_menu = menu.addMenu(self._text("keyboard"))
@@ -213,10 +311,24 @@ class G213Tray:
 
     def _apply_state(self):
         if self.state["on"]:
-            r, g, b = self.state["color"]
-            _send(r, g, b, self.state["keyboard"], self.state["language"])
+            if self.state["key_colors"] and self._per_key_supported():
+                _send_keys(self.state["key_colors"], self.state["keyboard"],
+                           self.state["language"])
+            else:
+                r, g, b = self.state["color"]
+                _send(r, g, b, self.state["keyboard"], self.state["language"])
         else:
             _send(0, 0, 0, self.state["keyboard"], self.state["language"])
+
+    def _per_key_supported(self):
+        return KEYBOARDS[self.state["keyboard"]]["per_key"]
+
+    def _set_all_color(self, r, g, b):
+        self.state["color"] = [r, g, b]
+        self.state["key_colors"] = {}
+        self.state["on"] = True
+        _send(r, g, b, self.state["keyboard"], self.state["language"])
+        save_state(self.state)
 
     def _select_keyboard(self, keyboard):
         self.state["keyboard_auto"] = False
@@ -224,8 +336,7 @@ class G213Tray:
         save_state(self.state)
         self._build_menu()
         self.tray.setToolTip(self._text("lighting"))
-        r, g, b = self.state["color"] if self.state["on"] else (0, 0, 0)
-        _send(r, g, b, keyboard, self.state["language"])
+        self._apply_state()
 
     def _select_auto_keyboard(self):
         self.state["keyboard_auto"] = True
@@ -251,11 +362,7 @@ class G213Tray:
 
     def _toggle(self):
         self.state["on"] = not self.state["on"]
-        if self.state["on"]:
-            r, g, b = self.state["color"]
-        else:
-            r, g, b = 0, 0, 0
-        _send(r, g, b, self.state["keyboard"], self.state["language"])
+        self._apply_state()
         save_state(self.state)
 
     def _on_activate(self, reason):
@@ -268,9 +375,57 @@ class G213Tray:
         color = QColorDialog.getColor(initial)
         if color.isValid():
             r, g, b = color.red(), color.green(), color.blue()
-            self.state["color"] = [r, g, b]
-            self.state["on"]    = True
-            _send(r, g, b, self.state["keyboard"], self.state["language"])
+            self._set_all_color(r, g, b)
+
+    def _set_group_color(self, group):
+        if not self._per_key_supported():
+            return
+        color = QColorDialog.getColor(QColor(*self.state["color"]))
+        if not color.isValid():
+            return
+        rgb = [color.red(), color.green(), color.blue()]
+        for key in KEY_GROUPS[group]:
+            self.state["key_colors"][key] = rgb
+        self.state["on"] = True
+        _send_keys(self.state["key_colors"], self.state["keyboard"],
+                   self.state["language"])
+        save_state(self.state)
+
+    def _edit_keys(self):
+        if not self._per_key_supported():
+            return
+        dialog = QDialog()
+        dialog.setWindowTitle(self._text("individual_keys"))
+        layout = QGridLayout(dialog)
+        buttons = {}
+        keys = list(KEYS.items())
+        for index, (name, key_id) in enumerate(keys):
+            button = QPushButton(name)
+            buttons[name] = button
+            self._style_key_button(button, self.state["key_colors"].get(name))
+            button.clicked.connect(
+                lambda checked, selected=name: self._choose_key_color(selected, buttons[selected]))
+            layout.addWidget(button, index // 10, index % 10)
+        close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        close.rejected.connect(dialog.reject)
+        close.accepted.connect(dialog.accept)
+        layout.addWidget(close, (len(keys) + 9) // 10, 0, 1, 10)
+        dialog.exec()
+
+    def _style_key_button(self, button, color):
+        if color:
+            button.setStyleSheet("background-color: rgb(%d, %d, %d)" % tuple(color))
+
+    def _choose_key_color(self, key, button):
+        current = QColor(*self.state["key_colors"].get(key, self.state["color"]))
+        color = QColorDialog.getColor(current)
+        if color.isValid():
+            rgb = [color.red(), color.green(), color.blue()]
+            self.state["key_colors"][key] = rgb
+            self.state["on"] = True
+            self._style_key_button(button, rgb)
+            _send_keys(self.state["key_colors"], self.state["keyboard"],
+                       self.state["language"])
             save_state(self.state)
 
 

@@ -15,6 +15,8 @@ A lightweight KDE system tray applet to control the backlight color of Logitech 
 - **Toggle lighting** with a single left-click on the tray icon
 - **7 color presets** (White, Red, Green, Blue, Purple, Orange, Cyan)
 - **Custom color picker** for any RGB color
+- **Per-key RGB control** on the Logitech G512
+- **Key-group presets** for WASD, arrows, function keys, navigation, modifiers, and numpad
 - **Remembers** last color and on/off state across reboots
 - **Keyboard selector** for Logitech G213 and G512 protocol profiles
 - **Language selector** for German and English interface text
@@ -90,6 +92,8 @@ python3 g213tray.py
 ```
 
 A keyboard icon should appear in your KDE system tray. Left-click toggles the light, right-click opens the color menu.
+
+On the G512, open **Custom color** to edit individual keys or apply a color to a key group. The G213 supports whole-keyboard and region lighting only because its USB protocol does not provide individual-key addressing.
 
 ### 5. Enable autostart
 
