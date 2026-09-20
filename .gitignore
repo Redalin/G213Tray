@@ -1,0 +1,21 @@
+# SSH credentials
+ssh_github.key
+ssh_github.key.pub
+
+# Python cache and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Local test and editor files
+.pytest_cache/
+.mypy_cache/
+.idea/
+.vscode/
+
+# Build and package artifacts
+build/
+dist/
+*.egg-info/
