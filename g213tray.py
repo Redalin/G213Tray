@@ -188,7 +188,7 @@ def _send_keys(key_colors, keyboard, language="en"):
             for key_id, color in items[start:start + 14]:
                 packet.extend((key_id, *color))
             packet.extend([0x00] * (64 - len(packet)))
-            dev.ctrl_transfer(0x21, 0x09, 0x0211, iface, packet)
+            dev.ctrl_transfer(0x21, 0x09, 0x0212, iface, packet)
         commit = [0x11, 0xff, 0x0c, 0x5a]
         dev.ctrl_transfer(0x21, 0x09, 0x0211, iface,
                           commit + [0x00] * 16)
@@ -417,6 +417,11 @@ class G213Tray:
             none_button.clicked.connect(
                 lambda: self._clear_selection(selected, key_buttons))
             group_layout.addWidget(none_button)
+            all_button = QPushButton(self._text("select_all"))
+            all_button.clicked.connect(
+                lambda: self._select_all(selected, selected_color,
+                                         draft_colors, key_buttons))
+            group_layout.addWidget(all_button)
             for group in KEY_GROUPS:
                 button = QPushButton(self._text("groups")[group])
                 button.clicked.connect(
@@ -499,6 +504,13 @@ class G213Tray:
         selected.clear()
         for button in key_buttons.values():
             button.setChecked(False)
+
+    def _select_all(self, selected, selected_color, draft_colors, key_buttons):
+        for key in KEYS:
+            selected.add(key)
+            draft_colors.setdefault(key, list(selected_color))
+            key_buttons[key].setChecked(True)
+            self._style_key_button(key_buttons[key], draft_colors[key])
 
     def _select_group(self, group, selected, selected_color, draft_colors,
                       key_buttons):

@@ -93,7 +93,7 @@ python3 g213tray.py
 
 A keyboard icon should appear in your KDE system tray. Left-click toggles the light, right-click opens the color menu.
 
-On the G512, open **Custom color** to open the editor. Select individual keys or a group, choose a color, and press **Apply**. **Save preset** stores the selected keys and color locally for reuse. The G213 supports whole-keyboard and region lighting only because its USB protocol does not provide individual-key addressing.
+On the G512, open **Custom color** to open the editor. Select individual keys, use **Select all**, or choose a group, then choose a color and press **Apply**. **Save preset** stores the selected keys and their colors locally for reuse. The G213 supports whole-keyboard and region lighting only because its USB protocol does not provide individual-key addressing.
 
 ### 5. Enable autostart
 
