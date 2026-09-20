@@ -1,6 +1,6 @@
 # G213Tray
 
-A lightweight KDE system tray applet to control the backlight color of the **Logitech G213 Prodigy** gaming keyboard — no Logitech software, no cloud, just one click.
+A lightweight KDE system tray applet to control the backlight color of the **Logitech G512** gaming keyboard. The application and interface have been updated to English — no Logitech software, no cloud, just one click.
 
 ![KDE System Tray](https://img.shields.io/badge/KDE-Plasma_6-blue?logo=kde)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-yellow?logo=python)
@@ -8,7 +8,7 @@ A lightweight KDE system tray applet to control the backlight color of the **Log
 
 ## Visuals
 
-![G213 keyboard with red backlight set via G213Tray](g213tray-red.jpg)
+![Logitech keyboard with red backlight set via G213Tray](g213tray-red.jpg)
 
 ## Features
 
@@ -25,31 +25,31 @@ Tested and confirmed working:
 
 | Keyboard | Vendor ID | Product ID |
 |---|---|---|
-| Logitech G213 Prodigy | `046d` | `c336` |
+| Logitech G512 | `046d` | `c342` or `c33c` |
 
-Other Logitech G-series keyboards that use the same HID protocol **may** work by changing `PRODUCT = 0xc336` in `g213tray.py` to your keyboard's product ID. Check yours with:
+Other Logitech G-series keyboards that use the same HID protocol **may** work by adding their product ID to `PRODUCT_IDS` in `g213tray.py`. Check yours with:
 
 ```bash
 lsusb | grep Logitech
 ```
 
-> **Not supported** by `libratbag`/`piper` — this tool communicates with the G213 directly via USB HID, which is why it works where other tools don't.
+> **Not supported** by `libratbag`/`piper` — this tool communicates with the G512 directly via USB HID, which is why it works where other tools don't.
 
 ## Requirements
 
 - Python 3.8+
-- PyQt5
+- PyQt6
 - pyusb
 
 ```bash
 # openSUSE / Tumbleweed
-sudo zypper install python3-PyQt5 python3-pyusb
+sudo zypper install python3-PyQt6 python3-pyusb
 
 # Fedora
-sudo dnf install python3-pyqt5 python3-pyusb
+sudo dnf install python3-pyqt6 python3-pyusb
 
 # Ubuntu / Debian
-sudo apt install python3-pyqt5 python3-usb
+sudo apt install python3-pyqt6 python3-usb
 ```
 
 ## Installation
