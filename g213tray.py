@@ -8,7 +8,8 @@ import usb.core
 import usb.util
 from PyQt6.QtWidgets import (QApplication, QSystemTrayIcon, QMenu,
                               QColorDialog, QDialog, QDialogButtonBox,
-                              QGridLayout, QPushButton)
+                              QGridLayout, QPushButton, QVBoxLayout,
+                              QHBoxLayout, QGroupBox, QLabel, QInputDialog)
 from PyQt6.QtGui import QIcon, QColor, QAction
 from PyQt6.QtCore import Qt
 
@@ -197,6 +198,7 @@ def ensure_state(state, detected_keyboard, system_language):
     state.setdefault("keyboard_auto", True)
     state.setdefault("language_auto", True)
     state.setdefault("key_colors", {})
+    state.setdefault("custom_presets", [])
     if state["keyboard_auto"]:
         state["keyboard"] = detected_keyboard or "g213"
     if state["language_auto"]:
@@ -251,24 +253,9 @@ class G213Tray:
             menu.addAction(action)
 
         menu.addSeparator()
-        custom_menu = menu.addMenu(self._text("custom_color"))
-        all_keys = QAction(self._text("all_keys"), custom_menu)
-        all_keys.triggered.connect(self._pick_color)
-        custom_menu.addAction(all_keys)
-        individual = QAction(self._text("individual_keys"), custom_menu)
-        individual.setEnabled(self._per_key_supported())
-        individual.triggered.connect(self._edit_keys)
-        custom_menu.addAction(individual)
-        if not self._per_key_supported():
-            individual.setToolTip(self._text("per_key_unavailable"))
-        custom_menu.addSeparator()
-        group_menu = custom_menu.addMenu(self._text("groups")["title"])
-        for group, keys in KEY_GROUPS.items():
-            action = QAction(self._text("groups")[group], group_menu)
-            action.setEnabled(self._per_key_supported())
-            action.triggered.connect(
-                lambda checked, selected=group: self._set_group_color(selected))
-            group_menu.addAction(action)
+        custom = QAction(self._text("custom_color"), menu)
+        custom.triggered.connect(self._edit_custom_color)
+        menu.addAction(custom)
 
         menu.addSeparator()
         keyboard_menu = menu.addMenu(self._text("keyboard"))
@@ -371,62 +358,136 @@ class G213Tray:
 
     def _pick_color(self):
         r, g, b = self.state["color"]
-        initial = QColor(r, g, b)
-        color = QColorDialog.getColor(initial)
+        color = QColorDialog.getColor(QColor(r, g, b))
         if color.isValid():
-            r, g, b = color.red(), color.green(), color.blue()
-            self._set_all_color(r, g, b)
+            self._set_all_color(color.red(), color.green(), color.blue())
 
-    def _set_group_color(self, group):
-        if not self._per_key_supported():
-            return
-        color = QColorDialog.getColor(QColor(*self.state["color"]))
-        if not color.isValid():
-            return
-        rgb = [color.red(), color.green(), color.blue()]
-        for key in KEY_GROUPS[group]:
-            self.state["key_colors"][key] = rgb
-        self.state["on"] = True
-        _send_keys(self.state["key_colors"], self.state["keyboard"],
-                   self.state["language"])
-        save_state(self.state)
-
-    def _edit_keys(self):
-        if not self._per_key_supported():
-            return
+    def _edit_custom_color(self):
         dialog = QDialog()
-        dialog.setWindowTitle(self._text("individual_keys"))
-        layout = QGridLayout(dialog)
-        buttons = {}
-        keys = list(KEYS.items())
-        for index, (name, key_id) in enumerate(keys):
-            button = QPushButton(name)
-            buttons[name] = button
-            self._style_key_button(button, self.state["key_colors"].get(name))
-            button.clicked.connect(
-                lambda checked, selected=name: self._choose_key_color(selected, buttons[selected]))
-            layout.addWidget(button, index // 10, index % 10)
+        dialog.setWindowTitle(self._text("custom_color"))
+        layout = QVBoxLayout(dialog)
+        selected = set(self.state["key_colors"])
+        selected_color = [*self.state["color"]]
+
+        if not self._per_key_supported():
+            layout.addWidget(QLabel(self._text("per_key_unavailable")))
+            all_keys = QPushButton(self._text("all_keys"))
+            all_keys.clicked.connect(lambda: self._pick_color())
+            layout.addWidget(all_keys)
+        else:
+            group_box = QGroupBox(self._text("groups")["title"])
+            group_layout = QHBoxLayout(group_box)
+            for group in KEY_GROUPS:
+                button = QPushButton(self._text("groups")[group])
+                button.clicked.connect(
+                    lambda checked, name=group: self._select_group(
+                        name, selected, key_buttons))
+                group_layout.addWidget(button)
+            layout.addWidget(group_box)
+
+            key_box = QGroupBox(self._text("individual_keys"))
+            key_layout = QGridLayout(key_box)
+            key_buttons = {}
+            for index, name in enumerate(KEYS):
+                button = QPushButton(name)
+                button.setCheckable(True)
+                button.setChecked(name in selected)
+                button.clicked.connect(
+                    lambda checked, key=name: self._toggle_key(
+                        key, checked, selected))
+                key_buttons[name] = button
+                key_layout.addWidget(button, index // 10, index % 10)
+            layout.addWidget(key_box)
+
+            color_row = QHBoxLayout()
+            color_label = QLabel(self._text("selected_color"))
+            color_button = QPushButton()
+            self._style_key_button(color_button, selected_color)
+            color_button.clicked.connect(
+                lambda: self._choose_dialog_color(selected_color, color_button))
+            color_row.addWidget(color_label)
+            color_row.addWidget(color_button)
+            layout.addLayout(color_row)
+
+            presets_box = QGroupBox(self._text("saved_presets"))
+            presets_layout = QHBoxLayout(presets_box)
+            for preset in self.state["custom_presets"]:
+                button = QPushButton(preset["name"])
+                button.clicked.connect(
+                    lambda checked, value=preset: self._load_custom_preset(
+                        value, selected, selected_color, key_buttons,
+                        color_button))
+                presets_layout.addWidget(button)
+            if not self.state["custom_presets"]:
+                presets_layout.addWidget(QLabel(self._text("no_saved_presets")))
+            layout.addWidget(presets_box)
+
+            action_row = QHBoxLayout()
+            apply_button = QPushButton(self._text("apply"))
+            apply_button.clicked.connect(
+                lambda: self._apply_selection(selected, selected_color))
+            save_button = QPushButton(self._text("save_preset"))
+            save_button.clicked.connect(
+                lambda: self._save_custom_preset(selected, selected_color))
+            action_row.addWidget(apply_button)
+            action_row.addWidget(save_button)
+            layout.addLayout(action_row)
+
         close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         close.rejected.connect(dialog.reject)
-        close.accepted.connect(dialog.accept)
-        layout.addWidget(close, (len(keys) + 9) // 10, 0, 1, 10)
+        layout.addWidget(close)
         dialog.exec()
 
-    def _style_key_button(self, button, color):
-        if color:
-            button.setStyleSheet("background-color: rgb(%d, %d, %d)" % tuple(color))
+    def _toggle_key(self, key, checked, selected):
+        if checked:
+            selected.add(key)
+        else:
+            selected.discard(key)
 
-    def _choose_key_color(self, key, button):
-        current = QColor(*self.state["key_colors"].get(key, self.state["color"]))
-        color = QColorDialog.getColor(current)
+    def _select_group(self, group, selected, key_buttons):
+        for key in KEY_GROUPS[group]:
+            selected.add(key)
+            key_buttons[key].setChecked(True)
+
+    def _choose_dialog_color(self, selected_color, button):
+        color = QColorDialog.getColor(QColor(*selected_color))
         if color.isValid():
-            rgb = [color.red(), color.green(), color.blue()]
-            self.state["key_colors"][key] = rgb
+            selected_color[:] = [color.red(), color.green(), color.blue()]
+            self._style_key_button(button, selected_color)
+
+    def _apply_selection(self, selected, selected_color):
+        for key in selected:
+            self.state["key_colors"][key] = list(selected_color)
+        if selected:
             self.state["on"] = True
-            self._style_key_button(button, rgb)
             _send_keys(self.state["key_colors"], self.state["keyboard"],
                        self.state["language"])
             save_state(self.state)
+
+    def _save_custom_preset(self, selected, selected_color):
+        if not selected:
+            return
+        name, accepted = QInputDialog.getText(
+            None, self._text("save_preset"), self._text("preset_name"))
+        if accepted and name.strip():
+            self.state["custom_presets"].append({
+                "name": name.strip(),
+                "keys": sorted(selected),
+                "color": list(selected_color),
+            })
+            save_state(self.state)
+
+    def _load_custom_preset(self, preset, selected, selected_color,
+                            key_buttons, color_button):
+        selected.clear()
+        selected.update(preset["keys"])
+        selected_color[:] = preset["color"]
+        for key, button in key_buttons.items():
+            button.setChecked(key in selected)
+        self._style_key_button(color_button, selected_color)
+
+    def _style_key_button(self, button, color):
+        button.setStyleSheet("background-color: rgb(%d, %d, %d)" % tuple(color))
 
 
 if __name__ == "__main__":
