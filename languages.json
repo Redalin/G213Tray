@@ -1,0 +1,24 @@
+{
+  "de": {
+    "language_name": "Deutsch",
+    "keyboard": "Tastatur",
+    "language": "Sprache",
+    "toggle": "Licht ein/aus",
+    "presets": ["Weiß", "Rot", "Grün", "Blau", "Lila", "Orange", "Cyan"],
+    "custom_color": "Eigene Farbe ...",
+    "quit": "Beenden",
+    "lighting": "Beleuchtung",
+    "not_found": "{keyboard} nicht gefunden (Logitech-IDs: {detected})"
+  },
+  "en": {
+    "language_name": "English",
+    "keyboard": "Keyboard",
+    "language": "Language",
+    "toggle": "Toggle lighting",
+    "presets": ["White", "Red", "Green", "Blue", "Purple", "Orange", "Cyan"],
+    "custom_color": "Custom color...",
+    "quit": "Quit",
+    "lighting": "lighting",
+    "not_found": "{keyboard} not found (Logitech IDs detected: {detected})"
+  }
+}

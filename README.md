@@ -1,6 +1,6 @@
 # G213Tray
 
-A lightweight KDE system tray applet to control the backlight color of the **Logitech G512** gaming keyboard. The application and interface have been updated to English — no Logitech software, no cloud, just one click.
+A lightweight KDE system tray applet to control the backlight color of Logitech G213 and G512 gaming keyboards. German and English are available from the tray menu, with no Logitech software or cloud required.
 
 ![KDE System Tray](https://img.shields.io/badge/KDE-Plasma_6-blue?logo=kde)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-yellow?logo=python)
@@ -16,15 +16,18 @@ A lightweight KDE system tray applet to control the backlight color of the **Log
 - **7 color presets** (White, Red, Green, Blue, Purple, Orange, Cyan)
 - **Custom color picker** for any RGB color
 - **Remembers** last color and on/off state across reboots
+- **Keyboard selector** for Logitech G213 and G512 protocol profiles
+- **Language selector** for German and English interface text
 - **Autostart** via KDE's standard autostart mechanism
 - No root required after a one-time udev rule setup
 
 ## Compatible keyboards
 
-Tested and confirmed working:
+Tested and confirmed working. Select the keyboard profile from the tray menu under **Keyboard**:
 
 | Keyboard | Vendor ID | Product ID |
 |---|---|---|
+| Logitech G213 Prodigy | `046d` | `c336` |
 | Logitech G512 | `046d` | `c342` or `c33c` |
 
 Other Logitech G-series keyboards that use the same HID protocol **may** work by adding their product ID to `PRODUCT_IDS` in `g213tray.py`. Check yours with:
@@ -33,7 +36,7 @@ Other Logitech G-series keyboards that use the same HID protocol **may** work by
 lsusb | grep Logitech
 ```
 
-> **Not supported** by `libratbag`/`piper` — this tool communicates with the G512 directly via USB HID, which is why it works where other tools don't.
+> **Not supported** by `libratbag`/`piper` — this tool communicates directly with the selected keyboard via USB HID, which is why it works where other tools don't.
 
 ## Requirements
 
