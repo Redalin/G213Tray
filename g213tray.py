@@ -867,4 +867,9 @@ if __name__ == "__main__":
     app = App = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     tray = G213Tray(app)
+    detected_keyboard = detect_keyboard()
+    if detected_keyboard:
+        print(f"Supported keyboard found: {KEYBOARDS[detected_keyboard]['name']}. G213Tray is running in the system tray.")
+    else:
+        print("No supported Logitech keyboard found. G213Tray is running in the system tray, but no supported device was detected.")
     sys.exit(app.exec())

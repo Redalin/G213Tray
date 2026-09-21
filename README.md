@@ -1,10 +1,25 @@
 # G213Tray
 
-A lightweight KDE system tray applet to control the backlight color of Logitech G213 and G512 gaming keyboards. German and English are available from the tray menu, with no Logitech software or cloud required.
+A lightweight KDE system tray applet to control the backlight color of Logitech G213 and G512 gaming keyboards. This fork builds on the original project with a more complete feature set, better keyboard support, and a more polished KDE tray experience.
 
 ![KDE System Tray](https://img.shields.io/badge/KDE-Plasma_6-blue?logo=kde)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-yellow?logo=python)
 ![License](https://img.shields.io/badge/License-GPL--3.0-green)
+
+## Enhancements over the original App
+
+This fork improves the original G213Tray in several practical ways:
+
+- Adds support for both the Logitech G213 and the Logitech G512
+- Adds per-key RGB control and key-group presets for G512 users
+- Adds a custom color editor with saveable presets and local reuse
+- Detects the connected keyboard automatically and keeps a manual override option
+- Supports both English and German interface text with automatic locale detection
+- Remembers the last on/off state and color across reboots
+- Adds KDE autostart defaults and a cleaner tray-menu workflow
+- Keeps setup simple with a one-time udev rule and no Logitech software required
+
+The result is a more complete, user-friendly fork that keeps the original idea but makes the app much more flexible and convenient for daily use.
 
 ## Visuals
 
