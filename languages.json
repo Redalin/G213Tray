@@ -23,6 +23,8 @@
     "delete_preset": "Preset löschen",
     "confirm_delete": "Preset \"{name}\" wirklich löschen?",
     "per_key_unavailable": "Einzeltasten werden von dieser Tastatur nicht unterstützt",
+    "quick_colors": "Schnellfarben",
+    "off": "Aus",
     "groups": {
       "title": "Tastengruppen",
       "wasd": "WASD",
@@ -60,6 +62,8 @@
     "delete_preset": "Delete preset",
     "confirm_delete": "Delete preset \"{name}\"?",
     "per_key_unavailable": "Individual keys are not supported by this keyboard",
+    "quick_colors": "Quick colors",
+    "off": "Off",
     "groups": {
       "title": "Key groups",
       "wasd": "WASD",

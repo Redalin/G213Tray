@@ -10,7 +10,8 @@ from PyQt6.QtWidgets import (QApplication, QSystemTrayIcon, QMenu,
                               QColorDialog, QDialog, QDialogButtonBox,
                               QGridLayout, QPushButton, QVBoxLayout,
                               QHBoxLayout, QGroupBox, QLabel, QInputDialog,
-                              QMessageBox, QSizePolicy)
+                              QMessageBox, QSizePolicy, QScrollArea,
+                              QWidget, QFrame, QLayout)
 from PyQt6.QtGui import QIcon, QColor, QAction
 from PyQt6.QtCore import Qt
 
@@ -72,7 +73,7 @@ KEYS = {
     "Num .": 0x63,
     "Ctrl": 0xe0, "Shift": 0xe1, "Alt": 0xe2, "Super": 0xe3,
     "Right Alt": 0xe4, "Right Super": 0xe5, "Right Ctrl": 0xe6,
-    "Right Shift": 0xe7, "Menu": 0xe8,
+    "Right Shift": 0xe7, "Menu": 0x65,
 }
 
 KEY_GROUPS = {
@@ -87,37 +88,105 @@ KEY_GROUPS = {
                "Num 7", "Num 8", "Num 9", "Num 0", "Num ."),
 }
 
+KEY_DISPLAY_LABELS = {
+    "Print Screen": "PrtSc",
+    "Scroll Lock": "ScrLk",
+    "Pause": "Pause",
+    "Page Up": "PgUp",
+    "Page Down": "PgDn",
+    "Insert": "Ins",
+    "Delete": "Del",
+    "Backspace": "Bksp",
+    "Caps Lock": "Caps",
+    "Left": "◀",
+    "Right": "▶",
+    "Up": "▲",
+    "Down": "▼",
+    "Num Lock": "Num",
+    "Num /": "/",
+    "Num *": "*",
+    "Num -": "-",
+    "Num +": "+",
+    "Num Enter": "Enter",
+    "Num .": ".",
+    "Num 0": "0",
+    "Num 1": "1",
+    "Num 2": "2",
+    "Num 3": "3",
+    "Num 4": "4",
+    "Num 5": "5",
+    "Num 6": "6",
+    "Num 7": "7",
+    "Num 8": "8",
+    "Num 9": "9",
+    "Super": "Win",
+    "Right Super": "Win",
+    "Right Alt": "AltGr",
+    "Right Ctrl": "Ctrl",
+    "Right Shift": "Shift",
+}
+
 KEYBOARD_LAYOUT = [
-    (0, [("Esc", 2), ("F1", 2), ("F2", 2), ("F3", 2), ("F4", 2),
-        ("F5", 2), ("F6", 2), ("F7", 2), ("F8", 2), ("F9", 2),
-        ("F10", 2), ("F11", 2), ("F12", 2)]),
-    (0, [("`", 2), ("1", 2), ("2", 2), ("3", 2), ("4", 2),
-        ("5", 2), ("6", 2), ("7", 2), ("8", 2), ("9", 2),
-        ("0", 2), ("-", 2), ("=", 2), ("Backspace", 4)]),
-    (1, [("Tab", 3), ("Q", 2), ("W", 2), ("E", 2), ("R", 2),
-        ("T", 2), ("Y", 2), ("U", 2), ("I", 2), ("O", 2),
-        ("P", 2), ("[", 2), ("]", 2), ("\\", 2)]),
-    (1, [("Caps Lock", 3), ("A", 2), ("S", 2), ("D", 2), ("F", 2),
-        ("G", 2), ("H", 2), ("J", 2), ("K", 2), ("L", 2),
-        (";", 2), ("'", 2), ("Enter", 4)]),
-    (0, [("Shift", 4), ("Z", 2), ("X", 2), ("C", 2), ("V", 2),
-        ("B", 2), ("N", 2), ("M", 2), (",", 2), (".", 2),
-        ("/", 2), ("Right Shift", 4)]),
-        (0, [("Ctrl", 3), ("Super", 3), ("Alt", 3), ("Space", 11),
-            ("Right Alt", 3), ("Right Super", 3), ("Right Ctrl", 3),
-            ("Menu", 3)]),
-    (1, [("Print Screen", 2), ("Scroll Lock", 2), ("Pause", 2),
-        (None, 2), ("Insert", 2), ("Home", 2), ("Page Up", 2),
-        (None, 2), ("Num Lock", 2), ("Num /", 2), ("Num *", 2),
-        ("Num -", 2)]),
-    (1, [("Delete", 2), ("End", 2), ("Page Down", 2), (None, 2),
-        ("Left", 2), ("Down", 2), ("Right", 2), (None, 2),
-        ("Num 7", 2), ("Num 8", 2), ("Num 9", 2), ("Num +", 2, 2)]),
-    (9, [("Up", 2), (None, 8), ("Num 4", 2), ("Num 5", 2),
-        ("Num 6", 2)]),
-    (20, [("Num 1", 2), ("Num 2", 2), ("Num 3", 2),
-          ("Num Enter", 2, 2)]),
-    (20, [("Num 0", 4), ("Num .", 2), (None, 2)]),
+    # Row 0: Function & System Keys
+    [
+        ("Esc", 4), (None, 4),
+        ("F1", 4), ("F2", 4), ("F3", 4), ("F4", 4), (None, 2),
+        ("F5", 4), ("F6", 4), ("F7", 4), ("F8", 4), (None, 2),
+        ("F9", 4), ("F10", 4), ("F11", 4), ("F12", 4),
+        (None, 2),
+        ("Print Screen", 4), ("Scroll Lock", 4), ("Pause", 4),
+        (None, 2),
+        (None, 16),
+    ],
+    # Row 1: Number Row & Numpad Top
+    [
+        ("`", 4), ("1", 4), ("2", 4), ("3", 4), ("4", 4), ("5", 4),
+        ("6", 4), ("7", 4), ("8", 4), ("9", 4), ("0", 4), ("-", 4),
+        ("=", 4), ("Backspace", 8),
+        (None, 2),
+        ("Insert", 4), ("Home", 4), ("Page Up", 4),
+        (None, 2),
+        ("Num Lock", 4), ("Num /", 4), ("Num *", 4), ("Num -", 4),
+    ],
+    # Row 2: QWERTY & Numpad 7-9
+    [
+        ("Tab", 6), ("Q", 4), ("W", 4), ("E", 4), ("R", 4), ("T", 4),
+        ("Y", 4), ("U", 4), ("I", 4), ("O", 4), ("P", 4), ("[", 4),
+        ("]", 4), ("\\", 6),
+        (None, 2),
+        ("Delete", 4), ("End", 4), ("Page Down", 4),
+        (None, 2),
+        ("Num 7", 4), ("Num 8", 4), ("Num 9", 4), ("Num +", 4, 2),
+    ],
+    # Row 3: Home Row & Numpad 4-6
+    [
+        ("Caps Lock", 7), ("A", 4), ("S", 4), ("D", 4), ("F", 4),
+        ("G", 4), ("H", 4), ("J", 4), ("K", 4), ("L", 4), (";", 4),
+        ("'", 4), ("Enter", 9),
+        (None, 2),
+        (None, 12),
+        (None, 2),
+        ("Num 4", 4), ("Num 5", 4), ("Num 6", 4),
+    ],
+    # Row 4: Shift Row & Up Arrow & Numpad 1-3
+    [
+        ("Shift", 9), ("Z", 4), ("X", 4), ("C", 4), ("V", 4),
+        ("B", 4), ("N", 4), ("M", 4), (",", 4), (".", 4),
+        ("/", 4), ("Right Shift", 11),
+        (None, 2),
+        (None, 4), ("Up", 4), (None, 4),
+        (None, 2),
+        ("Num 1", 4), ("Num 2", 4), ("Num 3", 4), ("Num Enter", 4, 2),
+    ],
+    # Row 5: Bottom Row, Arrows & Numpad 0/.
+    [
+        ("Ctrl", 5), ("Super", 5), ("Alt", 5), ("Space", 25),
+        ("Right Alt", 5), ("Right Super", 5), ("Menu", 5), ("Right Ctrl", 5),
+        (None, 2),
+        ("Left", 4), ("Down", 4), ("Right", 4),
+        (None, 2),
+        ("Num 0", 8), ("Num .", 4),
+    ],
 ]
 
 
@@ -336,7 +405,7 @@ class G213Tray:
 
         menu.addSeparator()
         quit_a = QAction(self._text("quit"), menu)
-        quit_a.triggered.connect(app.quit)
+        quit_a.triggered.connect(self.app.quit)
         menu.addAction(quit_a)
 
         self.tray.setContextMenu(menu)
@@ -411,8 +480,10 @@ class G213Tray:
     def _edit_custom_color(self):
         dialog = QDialog()
         dialog.setWindowTitle(self._text("custom_color"))
+        dialog.setMinimumWidth(980)
         layout = QVBoxLayout(dialog)
-        selected = set(self.state["key_colors"])
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+        selected = set()
         draft_colors = {key: list(color)
                 for key, color in self.state["key_colors"].items()}
         selected_color = [*self.state["color"]]
@@ -424,12 +495,18 @@ class G213Tray:
             layout.addWidget(all_keys)
         else:
             group_box = QGroupBox(self._text("groups")["title"])
+            group_box.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            group_box.setStyleSheet(
+                "QGroupBox { font-weight: bold; } "
+                "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 8px; padding: 0 3px; }"
+            )
             group_layout = QHBoxLayout(group_box)
             none_button = QPushButton(self._text("none"))
             none_button.setStyleSheet("background-color: #ffd6d6;")
             none_button.clicked.connect(
                 lambda: self._clear_selection(selected, key_buttons,
-                                               draft_colors))
+                                               draft_colors,
+                                               self.state["color"]))
             group_layout.addWidget(none_button)
             all_button = QPushButton(self._text("select_all"))
             all_button.clicked.connect(
@@ -445,42 +522,63 @@ class G213Tray:
                 group_layout.addWidget(button)
             layout.addWidget(group_box)
 
-            key_box = QGroupBox(self._text("individual_keys"))
-            key_layout = QGridLayout(key_box)
-            key_layout.setHorizontalSpacing(4)
-            key_layout.setVerticalSpacing(4)
-            for column in range(32):
+            key_label = QLabel(self._text("individual_keys"))
+            key_label.setStyleSheet(
+                "font-weight: bold; color: #475569; margin-top: 6px; margin-bottom: 2px;"
+            )
+            layout.addWidget(key_label)
+
+            key_frame = QFrame()
+            key_frame.setStyleSheet(
+                "QFrame {"
+                "  background-color: #1a1b1e;"
+                "  border: 1px solid #2e3138;"
+                "  border-radius: 8px;"
+                "}"
+            )
+            key_layout = QGridLayout(key_frame)
+            key_layout.setContentsMargins(10, 10, 10, 10)
+            key_layout.setHorizontalSpacing(3)
+            key_layout.setVerticalSpacing(3)
+            for column in range(92):
                 key_layout.setColumnStretch(column, 1)
             key_buttons = {}
-            for row, (offset, row_keys) in enumerate(KEYBOARD_LAYOUT):
-                column = offset
+            for row, row_keys in enumerate(KEYBOARD_LAYOUT):
+                column = 0
                 for entry in row_keys:
                     name, span = entry[:2]
                     row_span = entry[2] if len(entry) > 2 else 1
                     if name is None:
                         column += span
                         continue
-                    button = QPushButton(name)
+                    display_text = KEY_DISPLAY_LABELS.get(name, name)
+                    button = QPushButton(display_text)
+                    button.setToolTip(name)
                     button.setCheckable(True)
                     button.setChecked(name in selected)
                     button.setSizePolicy(QSizePolicy.Policy.Expanding,
                                          QSizePolicy.Policy.Fixed)
-                    button.setFixedHeight(34)
+                    if row_span > 1:
+                        button.setFixedHeight(32 * row_span + 3 * (row_span - 1))
+                    else:
+                        button.setFixedHeight(32)
                     self._style_key_button(
                         button, draft_colors.get(name, selected_color),
                         name in selected)
                     button.clicked.connect(
                         lambda checked, key=name, key_button=button:
                         self._toggle_key(
-                            key, checked, selected, key_button, draft_colors))
+                            key, checked, selected, key_button, draft_colors,
+                            selected_color))
                     key_buttons[name] = button
                     key_layout.addWidget(button, row, column, row_span, span)
                     column += span
-            layout.addWidget(key_box)
+            layout.addWidget(key_frame)
 
             color_row = QHBoxLayout()
-            color_label = QLabel(self._text("selected_color"))
+            color_label = QLabel(self._text("selected_color") + ":")
             color_button = QPushButton()
+            color_button.setFixedSize(60, 28)
             self._style_key_button(color_button, selected_color)
             color_button.clicked.connect(
                 lambda: self._choose_dialog_color(
@@ -488,24 +586,64 @@ class G213Tray:
                     color_button))
             color_row.addWidget(color_label)
             color_row.addWidget(color_button)
+
+            color_row.addSpacing(16)
+            swatches_label = QLabel(self._text("quick_colors") + ":")
+            color_row.addWidget(swatches_label)
+
+            swatch_colors = [
+                *[(r, g, b) for _, r, g, b in PRESETS],
+                (0, 0, 0),
+            ]
+            for r, g, b in swatch_colors:
+                swatch_btn = QPushButton()
+                swatch_btn.setFixedSize(28, 28)
+                self._style_key_button(swatch_btn, [r, g, b])
+                if (r, g, b) == (0, 0, 0):
+                    swatch_btn.setToolTip(self._text("off"))
+                swatch_btn.clicked.connect(
+                    lambda checked, c=[r, g, b]: self._set_active_color(
+                        c, selected_color, selected, draft_colors, key_buttons,
+                        color_button))
+                color_row.addWidget(swatch_btn)
+
+            color_row.addStretch()
             layout.addLayout(color_row)
 
             presets_box = QGroupBox(self._text("saved_presets"))
-            presets_layout = QVBoxLayout(presets_box)
-            save_button = QPushButton(self._text("save_preset"))
-            save_button.setSizePolicy(QSizePolicy.Policy.Maximum,
-                                      QSizePolicy.Policy.Fixed)
-            save_button.clicked.connect(
-                lambda checked=False: self._save_custom_preset(
-                    selected, selected_color, draft_colors, presets_layout,
-                    key_buttons, color_button))
-            presets_layout.addWidget(save_button)
+            presets_box.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            presets_box.setStyleSheet(
+                "QGroupBox { font-weight: bold; } "
+                "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 8px; padding: 0 3px; }"
+            )
+            presets_box_layout = QVBoxLayout(presets_box)
+
+            presets_scroll = QScrollArea()
+            presets_scroll.setWidgetResizable(True)
+            presets_scroll.setMaximumHeight(130)
+            presets_scroll.setMinimumHeight(65)
+            presets_scroll.setStyleSheet(
+                "QScrollArea { border: 1px solid #cbd5e1; border-radius: 6px; background-color: #f8fafc; }"
+            )
+            presets_widget = QWidget()
+            presets_list_layout = QVBoxLayout(presets_widget)
+            presets_list_layout.setContentsMargins(6, 6, 6, 6)
+            presets_list_layout.setSpacing(4)
+            presets_scroll.setWidget(presets_widget)
+            presets_box_layout.addWidget(presets_scroll)
+
             self._rebuild_preset_buttons(
-                presets_layout, selected, selected_color, draft_colors,
-                key_buttons, color_button)
+                presets_list_layout, selected, selected_color, draft_colors,
+                key_buttons, color_button, dialog)
             layout.addWidget(presets_box)
 
             action_row = QHBoxLayout()
+            save_button = QPushButton(self._text("save_preset"))
+            save_button.clicked.connect(
+                lambda checked=False: self._save_custom_preset(
+                    selected, selected_color, draft_colors, presets_list_layout,
+                    key_buttons, color_button, dialog))
+            action_row.addWidget(save_button)
             action_row.addStretch()
             apply_button = QPushButton(self._text("apply"))
             apply_button.setStyleSheet("background-color: #d9f7d9;")
@@ -532,25 +670,28 @@ class G213Tray:
             layout.addWidget(close)
         dialog.exec()
 
-    def _toggle_key(self, key, checked, selected, button, draft_colors):
+    def _toggle_key(self, key, checked, selected, button, draft_colors,
+                    selected_color):
         if checked:
             selected.add(key)
+            draft_colors[key] = list(selected_color)
         else:
             selected.discard(key)
-        self._style_key_button(button, draft_colors.get(key, [255, 255, 255]),
+        self._style_key_button(button, draft_colors.get(key, selected_color),
                                checked)
 
-    def _clear_selection(self, selected, key_buttons, draft_colors):
+    def _clear_selection(self, selected, key_buttons, draft_colors,
+                         default_color):
         selected.clear()
         for key, button in key_buttons.items():
             button.setChecked(False)
-            self._style_key_button(button, draft_colors.get(key, [255, 255, 255]),
+            self._style_key_button(button, draft_colors.get(key, default_color),
                                    False)
 
     def _select_all(self, selected, selected_color, draft_colors, key_buttons):
         for key in KEYS:
             selected.add(key)
-            draft_colors.setdefault(key, list(selected_color))
+            draft_colors[key] = list(selected_color)
             key_buttons[key].setChecked(True)
             self._style_key_button(key_buttons[key], draft_colors[key], True)
 
@@ -562,45 +703,61 @@ class G213Tray:
             key_buttons[key].setChecked(True)
             self._style_key_button(key_buttons[key], selected_color, True)
 
+    def _set_active_color(self, color, selected_color, selected, draft_colors,
+                          key_buttons, color_button):
+        selected_color[:] = list(color)
+        self._style_key_button(color_button, selected_color)
+        for key in selected:
+            draft_colors[key] = list(selected_color)
+            self._style_key_button(key_buttons[key], selected_color, True)
+
     def _choose_dialog_color(self, selected_color, selected, draft_colors,
-                             key_buttons, button):
+                             key_buttons, color_button):
         color = QColorDialog.getColor(QColor(*selected_color))
         if color.isValid():
-            selected_color[:] = [color.red(), color.green(), color.blue()]
-            self._style_key_button(button, selected_color)
-            for key in selected:
-                draft_colors[key] = list(selected_color)
-                self._style_key_button(key_buttons[key], selected_color, True)
+            self._set_active_color(
+                [color.red(), color.green(), color.blue()],
+                selected_color, selected, draft_colors, key_buttons, color_button)
 
     def _apply_selection(self, selected, selected_color, draft_colors,
                          key_buttons):
-        for key in selected:
+        targets = set(selected) if selected else set(draft_colors.keys())
+        for key in targets:
             self.state["key_colors"][key] = list(draft_colors.get(
                 key, selected_color))
             draft_colors[key] = list(self.state["key_colors"][key])
-            self._style_key_button(key_buttons[key], draft_colors[key], True)
-        if selected:
+            self._style_key_button(key_buttons[key], draft_colors[key], key in selected)
+        if self.state["key_colors"]:
             self.state["on"] = True
             _send_keys(self.state["key_colors"], self.state["keyboard"],
                        self.state["language"])
             save_state(self.state)
 
+    def _clear_layout(self, layout):
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.setParent(None)
+                widget.deleteLater()
+            sub_layout = item.layout()
+            if sub_layout:
+                self._clear_layout(sub_layout)
+                sub_layout.deleteLater()
+
     def _rebuild_preset_buttons(self, presets_layout, selected,
                                 selected_color, draft_colors, key_buttons,
-                                color_button):
-        save_button = presets_layout.takeAt(0).widget()
-        while presets_layout.count():
-            item = presets_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                item.layout().deleteLater()
-        presets_layout.addWidget(save_button)
+                                color_button, dialog=None):
+        self._clear_layout(presets_layout)
         if not self.state["custom_presets"]:
             presets_layout.addWidget(QLabel(self._text("no_saved_presets")))
+            if dialog:
+                dialog.adjustSize()
             return
         for index, preset in enumerate(self.state["custom_presets"]):
-            row = QHBoxLayout()
+            row_widget = QWidget()
+            row = QHBoxLayout(row_widget)
+            row.setContentsMargins(0, 0, 0, 0)
             button = QPushButton(preset["name"])
             button.setSizePolicy(QSizePolicy.Policy.Maximum,
                                  QSizePolicy.Policy.Fixed)
@@ -608,21 +765,24 @@ class G213Tray:
                 lambda checked, value=preset: self._load_custom_preset(
                     value, selected, selected_color, draft_colors,
                     key_buttons, color_button))
-            delete_button = QPushButton("X")
+            delete_button = QPushButton("✕")
             delete_button.setFixedWidth(28)
-            delete_button.setStyleSheet("background-color: #ffd6d6;")
+            delete_button.setStyleSheet("background-color: #ffd6d6; font-weight: bold;")
             delete_button.clicked.connect(
                 lambda checked, position=index: self._delete_preset(
                     position, presets_layout, selected, selected_color,
-                    draft_colors, key_buttons, color_button))
+                    draft_colors, key_buttons, color_button, dialog))
             row.addWidget(button)
             row.addWidget(delete_button)
             row.addStretch()
-            presets_layout.addLayout(row)
+            presets_layout.addWidget(row_widget)
+        presets_layout.addStretch()
+        if dialog:
+            dialog.adjustSize()
 
     def _delete_preset(self, index, presets_layout, selected,
                        selected_color, draft_colors, key_buttons,
-                       color_button):
+                       color_button, dialog=None):
         preset = self.state["custom_presets"][index]
         answer = QMessageBox.question(
             None, self._text("delete_preset"),
@@ -635,28 +795,30 @@ class G213Tray:
         save_state(self.state)
         self._rebuild_preset_buttons(
             presets_layout, selected, selected_color, draft_colors,
-            key_buttons, color_button)
+            key_buttons, color_button, dialog)
 
     def _save_custom_preset(self, selected, selected_color, draft_colors,
-                            presets_layout, key_buttons, color_button):
-        if not selected:
+                            presets_layout, key_buttons, color_button,
+                            dialog=None):
+        keys_to_save = selected if selected else set(draft_colors.keys())
+        if not keys_to_save:
             return
         name, accepted = QInputDialog.getText(
             None, self._text("save_preset"), self._text("preset_name"))
         if accepted and name.strip():
             colors = {
                 key: list(draft_colors.get(key, selected_color))
-                for key in selected
+                for key in keys_to_save
             }
             self.state["custom_presets"].append({
                 "name": name.strip(),
-                "keys": sorted(selected),
+                "keys": sorted(keys_to_save),
                 "colors": colors,
             })
             save_state(self.state)
             self._rebuild_preset_buttons(
                 presets_layout, selected, selected_color, draft_colors,
-                key_buttons, color_button)
+                key_buttons, color_button, dialog)
 
     def _load_custom_preset(self, preset, selected, selected_color,
                             draft_colors, key_buttons, color_button):
@@ -678,14 +840,25 @@ class G213Tray:
     def _style_key_button(self, button, color, selected=False):
         luminance = (0.299 * color[0] + 0.587 * color[1] +
                      0.114 * color[2])
+        text_color = "#0f172a" if luminance > 145 else "#f8fafc"
         if selected:
-            border = "2px solid #f8fafc" if luminance < 150 else "2px solid #475569"
+            border = "2px solid #00d2ff"
         else:
-            border = "1px solid #cbd5e1"
+            border = "1px solid rgba(255, 255, 255, 0.22)" if luminance < 100 else "1px solid rgba(0, 0, 0, 0.35)"
         button.setStyleSheet(
-            "background-color: rgb(%d, %d, %d); border: %s; "
-            "border-radius: 7px; padding: 4px 6px;" %
-            (*color, border))
+            "QPushButton {"
+            f"  background-color: rgb({color[0]}, {color[1]}, {color[2]});"
+            f"  color: {text_color};"
+            f"  border: {border};"
+            "  border-radius: 4px;"
+            "  font-weight: bold;"
+            "  font-size: 11px;"
+            "  padding: 0px;"
+            "}"
+            "QPushButton:hover {"
+            "  border: 2px solid #38bdf8;"
+            "}"
+        )
 
 
 if __name__ == "__main__":
