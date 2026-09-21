@@ -9,7 +9,8 @@ import usb.util
 from PyQt6.QtWidgets import (QApplication, QSystemTrayIcon, QMenu,
                               QColorDialog, QDialog, QDialogButtonBox,
                               QGridLayout, QPushButton, QVBoxLayout,
-                              QHBoxLayout, QGroupBox, QLabel, QInputDialog)
+                              QHBoxLayout, QGroupBox, QLabel, QInputDialog,
+                              QMessageBox, QSizePolicy)
 from PyQt6.QtGui import QIcon, QColor, QAction
 from PyQt6.QtCore import Qt
 
@@ -473,35 +474,45 @@ class G213Tray:
             layout.addLayout(color_row)
 
             presets_box = QGroupBox(self._text("saved_presets"))
-            presets_layout = QHBoxLayout(presets_box)
-            for preset in self.state["custom_presets"]:
-                button = QPushButton(preset["name"])
-                button.clicked.connect(
-                    lambda checked, value=preset: self._load_custom_preset(
-                        value, selected, selected_color, draft_colors,
-                        key_buttons, color_button))
-                presets_layout.addWidget(button)
-            if not self.state["custom_presets"]:
-                presets_layout.addWidget(QLabel(self._text("no_saved_presets")))
+            presets_layout = QVBoxLayout(presets_box)
+            save_button = QPushButton(self._text("save_preset"))
+            save_button.setSizePolicy(QSizePolicy.Policy.Maximum,
+                                      QSizePolicy.Policy.Fixed)
+            save_button.clicked.connect(
+                lambda checked=False: self._save_custom_preset(
+                    selected, selected_color, draft_colors, presets_layout,
+                    key_buttons, color_button))
+            presets_layout.addWidget(save_button)
+            self._rebuild_preset_buttons(
+                presets_layout, selected, selected_color, draft_colors,
+                key_buttons, color_button)
             layout.addWidget(presets_box)
 
             action_row = QHBoxLayout()
+            action_row.addStretch()
             apply_button = QPushButton(self._text("apply"))
             apply_button.setStyleSheet("background-color: #d9f7d9;")
             apply_button.clicked.connect(
                 lambda: self._apply_selection(
                     selected, selected_color, draft_colors, key_buttons))
-            save_button = QPushButton(self._text("save_preset"))
-            save_button.clicked.connect(
-                lambda: self._save_custom_preset(
-                    selected, selected_color, draft_colors))
+            cancel_button = QPushButton(self._text("cancel"))
+            cancel_button.clicked.connect(dialog.reject)
+            ok_button = QPushButton(self._text("ok"))
+            ok_button.clicked.connect(lambda checked=False: (
+                self._apply_selection(
+                    selected, selected_color, draft_colors, key_buttons),
+                dialog.accept()))
             action_row.addWidget(apply_button)
-            action_row.addWidget(save_button)
+            action_row.addWidget(cancel_button)
+            action_row.addWidget(ok_button)
             layout.addLayout(action_row)
 
-        close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        close.rejected.connect(dialog.reject)
-        layout.addWidget(close)
+        if self._per_key_supported():
+            pass
+        else:
+            close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+            close.rejected.connect(dialog.reject)
+            layout.addWidget(close)
         dialog.exec()
 
     def _toggle_key(self, key, checked, selected):
@@ -553,7 +564,60 @@ class G213Tray:
                        self.state["language"])
             save_state(self.state)
 
-    def _save_custom_preset(self, selected, selected_color, draft_colors):
+    def _rebuild_preset_buttons(self, presets_layout, selected,
+                                selected_color, draft_colors, key_buttons,
+                                color_button):
+        save_button = presets_layout.takeAt(0).widget()
+        while presets_layout.count():
+            item = presets_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                item.layout().deleteLater()
+        presets_layout.addWidget(save_button)
+        if not self.state["custom_presets"]:
+            presets_layout.addWidget(QLabel(self._text("no_saved_presets")))
+            return
+        for index, preset in enumerate(self.state["custom_presets"]):
+            row = QHBoxLayout()
+            button = QPushButton(preset["name"])
+            button.setSizePolicy(QSizePolicy.Policy.Maximum,
+                                 QSizePolicy.Policy.Fixed)
+            button.clicked.connect(
+                lambda checked, value=preset: self._load_custom_preset(
+                    value, selected, selected_color, draft_colors,
+                    key_buttons, color_button))
+            delete_button = QPushButton("X")
+            delete_button.setFixedWidth(28)
+            delete_button.setStyleSheet("background-color: #ffd6d6;")
+            delete_button.clicked.connect(
+                lambda checked, position=index: self._delete_preset(
+                    position, presets_layout, selected, selected_color,
+                    draft_colors, key_buttons, color_button))
+            row.addWidget(button)
+            row.addWidget(delete_button)
+            row.addStretch()
+            presets_layout.addLayout(row)
+
+    def _delete_preset(self, index, presets_layout, selected,
+                       selected_color, draft_colors, key_buttons,
+                       color_button):
+        preset = self.state["custom_presets"][index]
+        answer = QMessageBox.question(
+            None, self._text("delete_preset"),
+            self._text("confirm_delete").format(name=preset["name"]),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        del self.state["custom_presets"][index]
+        save_state(self.state)
+        self._rebuild_preset_buttons(
+            presets_layout, selected, selected_color, draft_colors,
+            key_buttons, color_button)
+
+    def _save_custom_preset(self, selected, selected_color, draft_colors,
+                            presets_layout, key_buttons, color_button):
         if not selected:
             return
         name, accepted = QInputDialog.getText(
@@ -569,6 +633,9 @@ class G213Tray:
                 "colors": colors,
             })
             save_state(self.state)
+            self._rebuild_preset_buttons(
+                presets_layout, selected, selected_color, draft_colors,
+                key_buttons, color_button)
 
     def _load_custom_preset(self, preset, selected, selected_color,
                             draft_colors, key_buttons, color_button):
