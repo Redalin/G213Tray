@@ -108,14 +108,16 @@ KEYBOARD_LAYOUT = [
             ("Menu", 3)]),
     (1, [("Print Screen", 2), ("Scroll Lock", 2), ("Pause", 2),
         (None, 2), ("Insert", 2), ("Home", 2), ("Page Up", 2),
-        (None, 2), ("Num Lock", 2), ("Num /", 2), ("Num *", 2)]),
+        (None, 2), ("Num Lock", 2), ("Num /", 2), ("Num *", 2),
+        ("Num -", 2)]),
     (1, [("Delete", 2), ("End", 2), ("Page Down", 2), (None, 2),
         ("Left", 2), ("Down", 2), ("Right", 2), (None, 2),
-        ("Num 7", 2), ("Num 8", 2), ("Num 9", 2), ("Num -", 2)]),
+        ("Num 7", 2), ("Num 8", 2), ("Num 9", 2), ("Num +", 2, 2)]),
     (9, [("Up", 2), (None, 8), ("Num 4", 2), ("Num 5", 2),
-        ("Num 6", 2), ("Num +", 2)]),
-    (20, [("Num 1", 2), ("Num 2", 2), ("Num 3", 2), ("Num Enter", 2)]),
-    (20, [("Num 0", 4), ("Num .", 2)]),
+        ("Num 6", 2)]),
+    (20, [("Num 1", 2), ("Num 2", 2), ("Num 3", 2),
+          ("Num Enter", 2, 2)]),
+    (20, [("Num 0", 4), ("Num .", 2), (None, 2)]),
 ]
 
 
@@ -445,16 +447,25 @@ class G213Tray:
 
             key_box = QGroupBox(self._text("individual_keys"))
             key_layout = QGridLayout(key_box)
+            key_layout.setHorizontalSpacing(4)
+            key_layout.setVerticalSpacing(4)
+            for column in range(32):
+                key_layout.setColumnStretch(column, 1)
             key_buttons = {}
             for row, (offset, row_keys) in enumerate(KEYBOARD_LAYOUT):
                 column = offset
-                for name, span in row_keys:
+                for entry in row_keys:
+                    name, span = entry[:2]
+                    row_span = entry[2] if len(entry) > 2 else 1
                     if name is None:
                         column += span
                         continue
                     button = QPushButton(name)
                     button.setCheckable(True)
                     button.setChecked(name in selected)
+                    button.setSizePolicy(QSizePolicy.Policy.Expanding,
+                                         QSizePolicy.Policy.Fixed)
+                    button.setFixedHeight(34)
                     self._style_key_button(
                         button, draft_colors.get(name, selected_color),
                         name in selected)
@@ -463,7 +474,7 @@ class G213Tray:
                         self._toggle_key(
                             key, checked, selected, key_button, draft_colors))
                     key_buttons[name] = button
-                    key_layout.addWidget(button, row, column, 1, span)
+                    key_layout.addWidget(button, row, column, row_span, span)
                     column += span
             layout.addWidget(key_box)
 
