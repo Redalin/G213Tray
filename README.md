@@ -126,6 +126,7 @@ Edit the `Exec=` line in the `.desktop` file to point at the full path of `g213t
 |---|---|
 | Left-click the tray icon | Toggle lighting on/off |
 | Right-click → color name | Apply a preset color |
+| Right-click → **Saved presets** → preset name | Apply a saved preset directly |
 | Right-click → *Custom color…* | Open the color picker |
 | Right-click → *Quit* | Exit the applet |
 

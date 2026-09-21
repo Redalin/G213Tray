@@ -367,6 +367,19 @@ class G213Tray:
             action.triggered.connect(make_cb())
             menu.addAction(action)
 
+        saved_menu = menu.addMenu(self._text("saved_presets"))
+        if self.state["custom_presets"]:
+            for preset in self.state["custom_presets"]:
+                action = QAction(preset["name"], saved_menu)
+                action.triggered.connect(
+                    lambda checked=False, value=preset:
+                    self._apply_custom_preset(value))
+                saved_menu.addAction(action)
+        else:
+            empty = QAction(self._text("no_saved_presets"), saved_menu)
+            empty.setEnabled(False)
+            saved_menu.addAction(empty)
+
         menu.addSeparator()
         custom = QAction(self._text("custom_color"), menu)
         custom.triggered.connect(self._edit_custom_color)
@@ -431,6 +444,31 @@ class G213Tray:
         self.state["on"] = True
         _send(r, g, b, self.state["keyboard"], self.state["language"])
         save_state(self.state)
+
+    def _apply_custom_preset(self, preset):
+        colors = preset.get("colors", {})
+        fallback = preset.get("color")
+        if fallback is None and colors:
+            fallback = colors[sorted(colors)[0]]
+        if fallback is None:
+            fallback = self.state["color"]
+
+        if self._per_key_supported() and colors:
+            self.state["key_colors"] = {
+                key: list(colors.get(key, fallback))
+                for key in preset.get("keys", [])
+                if key in KEYS
+            }
+            if self.state["key_colors"]:
+                self.state["color"] = list(next(
+                    iter(self.state["key_colors"].values())))
+                self.state["on"] = True
+                _send_keys(self.state["key_colors"], self.state["keyboard"],
+                           self.state["language"])
+                save_state(self.state)
+                return
+
+        self._set_all_color(*fallback)
 
     def _select_keyboard(self, keyboard):
         self.state["keyboard_auto"] = False
@@ -793,6 +831,7 @@ class G213Tray:
             return
         del self.state["custom_presets"][index]
         save_state(self.state)
+        self._build_menu()
         self._rebuild_preset_buttons(
             presets_layout, selected, selected_color, draft_colors,
             key_buttons, color_button, dialog)
@@ -816,6 +855,7 @@ class G213Tray:
                 "colors": colors,
             })
             save_state(self.state)
+            self._build_menu()
             self._rebuild_preset_buttons(
                 presets_layout, selected, selected_color, draft_colors,
                 key_buttons, color_button, dialog)
