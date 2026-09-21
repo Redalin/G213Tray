@@ -146,6 +146,7 @@ def _send(r, g, b, keyboard, language="en"):
     if dev.is_kernel_driver_active(iface):
         dev.detach_kernel_driver(iface)
         detached = True
+    usb.util.claim_interface(dev, iface)
     try:
         pkt = [0x11, 0xff, *profile["packet_prefix"], 0x00, 0x01, r, g, b,
                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -178,6 +179,7 @@ def _send_keys(key_colors, keyboard, language="en"):
     if dev.is_kernel_driver_active(iface):
         dev.detach_kernel_driver(iface)
         detached = True
+    usb.util.claim_interface(dev, iface)
     try:
         items = sorted(
             ((KEYS[name], color) for name, color in key_colors.items()
@@ -189,9 +191,17 @@ def _send_keys(key_colors, keyboard, language="en"):
                 packet.extend((key_id, *color))
             packet.extend([0x00] * (64 - len(packet)))
             dev.ctrl_transfer(0x21, 0x09, 0x0212, iface, packet)
+            try:
+                dev.read(0x82, 64, timeout=1)
+            except usb.core.USBError:
+                pass
         commit = [0x11, 0xff, 0x0c, 0x5a]
         dev.ctrl_transfer(0x21, 0x09, 0x0211, iface,
                           commit + [0x00] * 16)
+        try:
+            dev.read(0x82, 64, timeout=1)
+        except usb.core.USBError:
+            pass
     finally:
         usb.util.release_interface(dev, iface)
         if detached:
