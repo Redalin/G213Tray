@@ -665,9 +665,15 @@ class G213Tray:
         self._style_key_button(color_button, selected_color)
 
     def _style_key_button(self, button, color, selected=False):
-        border = "3px solid #202020" if selected else "1px solid #888888"
+        luminance = (0.299 * color[0] + 0.587 * color[1] +
+                     0.114 * color[2])
+        if selected:
+            border = "2px solid #f8fafc" if luminance < 150 else "2px solid #475569"
+        else:
+            border = "1px solid #cbd5e1"
         button.setStyleSheet(
-            "background-color: rgb(%d, %d, %d); border: %s;" %
+            "background-color: rgb(%d, %d, %d); border: %s; "
+            "border-radius: 7px; padding: 4px 6px;" %
             (*color, border))
 
 
