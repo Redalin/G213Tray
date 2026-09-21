@@ -107,15 +107,15 @@ KEYBOARD_LAYOUT = [
             ("Right Alt", 3), ("Right Super", 3), ("Right Ctrl", 3),
             ("Menu", 3)]),
     (1, [("Print Screen", 2), ("Scroll Lock", 2), ("Pause", 2),
-        ("Insert", 2), ("Home", 2), ("Page Up", 2),
-        ("Num Lock", 2), ("Num /", 2), ("Num *", 2)]),
-    (1, [("Delete", 2), ("End", 2), ("Page Down", 2), ("Num 7", 2),
-        ("Num 8", 2), ("Num 9", 2), ("Num -", 2)]),
-    (5, [("Up", 2), ("Num 4", 2), ("Num 5", 2), ("Num 6", 2),
-        ("Num +", 2)]),
-    (3, [("Left", 2), ("Down", 2), ("Right", 2), ("Num 1", 2),
-        ("Num 2", 2), ("Num 3", 2), ("Num Enter", 2)]),
-    (8, [("Num 0", 4), ("Num .", 2)]),
+        (None, 2), ("Insert", 2), ("Home", 2), ("Page Up", 2),
+        (None, 2), ("Num Lock", 2), ("Num /", 2), ("Num *", 2)]),
+    (1, [("Delete", 2), ("End", 2), ("Page Down", 2), (None, 2),
+        ("Left", 2), ("Down", 2), ("Right", 2), (None, 2),
+        ("Num 7", 2), ("Num 8", 2), ("Num 9", 2), ("Num -", 2)]),
+    (9, [("Up", 2), (None, 8), ("Num 4", 2), ("Num 5", 2),
+        ("Num 6", 2), ("Num +", 2)]),
+    (20, [("Num 1", 2), ("Num 2", 2), ("Num 3", 2), ("Num Enter", 2)]),
+    (20, [("Num 0", 4), ("Num .", 2)]),
 ]
 
 
@@ -426,7 +426,8 @@ class G213Tray:
             none_button = QPushButton(self._text("none"))
             none_button.setStyleSheet("background-color: #ffd6d6;")
             none_button.clicked.connect(
-                lambda: self._clear_selection(selected, key_buttons))
+                lambda: self._clear_selection(selected, key_buttons,
+                                               draft_colors))
             group_layout.addWidget(none_button)
             all_button = QPushButton(self._text("select_all"))
             all_button.clicked.connect(
@@ -448,14 +449,19 @@ class G213Tray:
             for row, (offset, row_keys) in enumerate(KEYBOARD_LAYOUT):
                 column = offset
                 for name, span in row_keys:
+                    if name is None:
+                        column += span
+                        continue
                     button = QPushButton(name)
                     button.setCheckable(True)
                     button.setChecked(name in selected)
                     self._style_key_button(
-                        button, draft_colors.get(name, selected_color))
+                        button, draft_colors.get(name, selected_color),
+                        name in selected)
                     button.clicked.connect(
-                        lambda checked, key=name: self._toggle_key(
-                            key, checked, selected))
+                        lambda checked, key=name, key_button=button:
+                        self._toggle_key(
+                            key, checked, selected, key_button, draft_colors))
                     key_buttons[name] = button
                     key_layout.addWidget(button, row, column, 1, span)
                     column += span
@@ -515,23 +521,27 @@ class G213Tray:
             layout.addWidget(close)
         dialog.exec()
 
-    def _toggle_key(self, key, checked, selected):
+    def _toggle_key(self, key, checked, selected, button, draft_colors):
         if checked:
             selected.add(key)
         else:
             selected.discard(key)
+        self._style_key_button(button, draft_colors.get(key, [255, 255, 255]),
+                               checked)
 
-    def _clear_selection(self, selected, key_buttons):
+    def _clear_selection(self, selected, key_buttons, draft_colors):
         selected.clear()
-        for button in key_buttons.values():
+        for key, button in key_buttons.items():
             button.setChecked(False)
+            self._style_key_button(button, draft_colors.get(key, [255, 255, 255]),
+                                   False)
 
     def _select_all(self, selected, selected_color, draft_colors, key_buttons):
         for key in KEYS:
             selected.add(key)
             draft_colors.setdefault(key, list(selected_color))
             key_buttons[key].setChecked(True)
-            self._style_key_button(key_buttons[key], draft_colors[key])
+            self._style_key_button(key_buttons[key], draft_colors[key], True)
 
     def _select_group(self, group, selected, selected_color, draft_colors,
                       key_buttons):
@@ -539,7 +549,7 @@ class G213Tray:
             selected.add(key)
             draft_colors[key] = list(selected_color)
             key_buttons[key].setChecked(True)
-            self._style_key_button(key_buttons[key], selected_color)
+            self._style_key_button(key_buttons[key], selected_color, True)
 
     def _choose_dialog_color(self, selected_color, selected, draft_colors,
                              key_buttons, button):
@@ -549,7 +559,7 @@ class G213Tray:
             self._style_key_button(button, selected_color)
             for key in selected:
                 draft_colors[key] = list(selected_color)
-                self._style_key_button(key_buttons[key], selected_color)
+                self._style_key_button(key_buttons[key], selected_color, True)
 
     def _apply_selection(self, selected, selected_color, draft_colors,
                          key_buttons):
@@ -557,7 +567,7 @@ class G213Tray:
             self.state["key_colors"][key] = list(draft_colors.get(
                 key, selected_color))
             draft_colors[key] = list(self.state["key_colors"][key])
-            self._style_key_button(key_buttons[key], draft_colors[key])
+            self._style_key_button(key_buttons[key], draft_colors[key], True)
         if selected:
             self.state["on"] = True
             _send_keys(self.state["key_colors"], self.state["keyboard"],
@@ -650,11 +660,15 @@ class G213Tray:
         for key, button in key_buttons.items():
             button.setChecked(key in selected)
             self._style_key_button(
-                button, draft_colors.get(key, self.state["color"]))
+                button, draft_colors.get(key, self.state["color"]),
+                key in selected)
         self._style_key_button(color_button, selected_color)
 
-    def _style_key_button(self, button, color):
-        button.setStyleSheet("background-color: rgb(%d, %d, %d)" % tuple(color))
+    def _style_key_button(self, button, color, selected=False):
+        border = "3px solid #202020" if selected else "1px solid #888888"
+        button.setStyleSheet(
+            "background-color: rgb(%d, %d, %d); border: %s;" %
+            (*color, border))
 
 
 if __name__ == "__main__":
