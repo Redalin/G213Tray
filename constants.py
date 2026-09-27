@@ -59,8 +59,8 @@ KEYS = {
     "Num 7": 0x5f, "Num 8": 0x60, "Num 9": 0x61, "Num 0": 0x62,
     "Num .": 0x63,
     "Ctrl": 0xe0, "Shift": 0xe1, "Alt": 0xe2, "Super": 0xe3,
-    "Right Alt": 0xe4, "Right Super": 0xe5, "Right Ctrl": 0xe6,
-    "Right Shift": 0xe7, "Menu": 0x65,
+    "Right Alt": 0xe4, "Right Super": 0xe7, "Right Ctrl": 0xe6,
+    "Right Shift": 0xe5, "Menu": 0x65,
 }
 
 KEY_GROUPS = {
