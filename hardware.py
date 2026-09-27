@@ -28,9 +28,13 @@ def _send(r, g, b, keyboard, language="en"):
         detached = True
     usb.util.claim_interface(dev, iface)
     try:
-        pkt = [0x11, 0xff, *profile["packet_prefix"], 0x00, 0x01, r, g, b,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        pkt = [0x11, 0xff, *profile["packet_prefix"], 0x00, 0x01, r, g, b]
+        pkt.extend([0x00] * (20 - len(pkt)))
         dev.ctrl_transfer(0x21, 0x09, 0x0211, iface, pkt)
+        try:
+            dev.read(0x82, 64, timeout=1)
+        except usb.core.USBError:
+            pass
     finally:
         usb.util.release_interface(dev, iface)
         if detached:
